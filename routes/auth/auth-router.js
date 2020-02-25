@@ -20,20 +20,37 @@ router.post('/register', (req, res) => {
 })
 
 router.post('/login', (req, res) => {
-  let { username, password } = req.body;
-  console.log(username)
-  console.log(password)
+  let { username, password } = req.headers;
+  console.log(req.session)
 
   User.findBy({ username })
     .first()
     .then(login => {
       if (login && bcrypt.compareSync(password, login.password)){
+        req.session.loggedIn = true;
+        req.session.username = login.username
         res.status(200).json({successMessage: `Welcome ${login.username}!`})
       } else {
         res.status(401).json({errorMessage: "Invalid Credentials"})
       }
     })
     .catch(err => res.status(500).json({errorMessage: `Something wrong with the server ${err}`}))
+})
+
+router.get('/logout', (req, res) => {
+  if (req.session) {
+    req.session.destroy(err => {
+      if (err) {
+        res.status(500).json({
+          errorMessage: "failed to log out"
+        })
+      } else {
+        res.status(200).json({ successMessage: "succesfully logged out"})
+      }
+    })
+  } else {
+    res.status(200).json({errorMessage: "must be logged in to log out"})
+  }
 })
 
 module.exports = router;
